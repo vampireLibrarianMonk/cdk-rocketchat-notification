@@ -1,0 +1,353 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  CloudWatch Disk Usage Alerting - Environment Setup
+
+Parameters:
+  AvailabilityZone:
+    Type: String
+    Default: us-east-2a
+  CIDRDiskMonitorVPC:
+    Type: String
+    Default: 10.10.0.0/28 # 8 total IPs → 6 usable
+  CIDRRocketChatVPC:
+    Type: String
+    Default: 10.20.0.0/28 # 8 total IPs → 6 usable
+  CIDRLambdaVPC:
+    Type: String
+    Default: 10.0.0.0/27 # 32 total IPs → split into two /28s
+  FacilityPrefixListId:
+    Type: String
+    Default: pl-01218956d72e22165
+    Description: The managed prefix list ID for approved facility ingress
+
+Resources:
+
+  # === VPCs ===
+  DiskMonitorVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CIDRDiskMonitorVPC
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: demo-disk-monitor-vpc
+
+  RocketChatVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CIDRRocketChatVPC
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: demo-rocketchat-vpc
+
+  LambdaVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CIDRLambdaVPC
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: demo-lambda-vpc
+
+  # === Subnets ===
+  DiskMonitorSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DiskMonitorVPC
+      CidrBlock: 10.10.0.0/28
+      AvailabilityZone: !Ref AvailabilityZone
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: demo-disk-monitor-subnet
+
+  RocketChatSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref RocketChatVPC
+      CidrBlock: 10.20.0.0/28
+      AvailabilityZone: !Ref AvailabilityZone
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: demo-rocketchat-subnet
+
+  LambdaPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref LambdaVPC
+      CidrBlock: 10.0.0.0/28
+      AvailabilityZone: !Ref AvailabilityZone
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Demo-Lambda-Public
+
+  LambdaPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref LambdaVPC
+      CidrBlock: 10.0.0.16/28
+      AvailabilityZone: !Ref AvailabilityZone
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Demo-Lambda-Private
+
+  # === Internet Gateways ===
+  DiskMonitorIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: demo-disk-monitor-igw
+
+  AttachDiskMonitorIGW:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref DiskMonitorVPC
+      InternetGatewayId: !Ref DiskMonitorIGW
+
+  RocketChatIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: demo-rocketchat-igw
+
+  AttachRocketChatIGW:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref RocketChatVPC
+      InternetGatewayId: !Ref RocketChatIGW
+
+  LambdaIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: demo-lambda-igw
+
+  AttachLambdaIGW:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref LambdaVPC
+      InternetGatewayId: !Ref LambdaIGW
+
+  # === Elastic IP for NAT ===
+  LambdaNatEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  # === Elastic IP for RocketChat ===
+  RocketChatEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  # === NAT Gateway ===
+  LambdaNATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt LambdaNatEIP.AllocationId
+      SubnetId: !Ref LambdaPublicSubnet
+      Tags:
+        - Key: Name
+          Value: LambdaNAT
+
+  # === Route Tables ===
+  LambdaPublicRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref LambdaVPC
+      Tags:
+        - Key: Name
+          Value: Demo-LambdaPublicRT
+
+  LambdaPrivateRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref LambdaVPC
+      Tags:
+        - Key: Name
+          Value: Demo-LambdaPrivateRT
+
+  DiskMonitorRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref DiskMonitorVPC
+      Tags:
+        - Key: Name
+          Value: demo-disk-monitor-rt
+
+  RocketChatRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref RocketChatVPC
+      Tags:
+        - Key: Name
+          Value: demo-rocketchat-rt
+
+  # === Routes ===
+  LambdaPublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref LambdaPublicRT
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref LambdaIGW
+
+  LambdaPrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref LambdaPrivateRT
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref LambdaNATGateway
+
+  DiskMonitorRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DiskMonitorRT
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref DiskMonitorIGW
+
+  RocketChatRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RocketChatRT
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref RocketChatIGW
+
+  # === Route Table Associations ===
+  LambdaPublicSubnetAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref LambdaPublicSubnet
+      RouteTableId: !Ref LambdaPublicRT
+
+  LambdaPrivateSubnetAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref LambdaPrivateSubnet
+      RouteTableId: !Ref LambdaPrivateRT
+
+  DiskMonitorPublicSubnetAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DiskMonitorSubnet
+      RouteTableId: !Ref DiskMonitorRT
+
+  RocketChatPublicSubnetAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref RocketChatSubnet
+      RouteTableId: !Ref RocketChatRT
+
+  # === Security Groups ===
+  RocketChatSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and Rocket.Chat access from facility prefix list and
+        Lambda NAT EIP
+      VpcId: !Ref RocketChatVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourcePrefixListId: !Ref FacilityPrefixListId
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourcePrefixListId: !Ref FacilityPrefixListId
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: !Sub ${LambdaNatEIP.PublicIp}/32
+      Tags:
+        - Key: Name
+          Value: demo-rocketchat-sg
+
+  DiskMonitorSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH access for disk monitor from facility prefix list
+      VpcId: !Ref DiskMonitorVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourcePrefixListId: !Ref FacilityPrefixListId
+      Tags:
+        - Key: Name
+          Value: demo-disk-monitor-sg
+
+  LambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Lambda to Rocket.Chat webhook access
+      VpcId: !Ref LambdaVPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: demo-lambda-sg
+
+Outputs:
+  DiskMonitorVPC:
+    Description: VPC for Disk Monitor EC2
+    Value: !Ref DiskMonitorVPC
+
+  RocketChatVPC:
+    Description: VPC for Rocket.Chat EC2
+    Value: !Ref RocketChatVPC
+
+  LambdaVPC:
+    Description: VPC for Lambda with NAT
+    Value: !Ref LambdaVPC
+
+  DiskMonitorSubnet:
+    Description: Subnet for Disk Monitor EC2
+    Value: !Ref DiskMonitorSubnet
+    Export:
+      Name: DiskMonitorSubnet
+
+  RocketChatSubnet:
+    Description: Subnet for Rocket.Chat EC2
+    Value: !Ref RocketChatSubnet
+    Export:
+      Name: RocketChatSubnet
+
+  LambdaPrivateSubnet:
+    Description: Subnet for Lambda function
+    Value: !Ref LambdaPrivateSubnet
+    Export:
+      Name: LambdaPrivateSubnet
+
+  RocketChatSG:
+    Description: Security Group for Rocket.Chat EC2 instance
+    Value: !Ref RocketChatSG
+    Export:
+      Name: RocketChatSG
+
+  DiskMonitorSG:
+    Description: Security Group for Disk Monitoring EC2 instance
+    Value: !Ref DiskMonitorSG
+    Export:
+      Name: DiskMonitorSG
+
+  LambdaSG:
+    Description: Security Group for Lambda function to access Rocket.Chat
+    Value: !Ref LambdaSG
+    Export:
+      Name: LambdaSG
+
+  RocketChatEIPAllocationId:
+    Description: Allocation ID for Rocket.Chat EIP
+    Value: !GetAtt RocketChatEIP.AllocationId
+    Export:
+      Name: RocketChatEIP

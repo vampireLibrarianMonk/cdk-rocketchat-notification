@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudWatch alarms for monitoring disk usage on mounted volumes using SSM threshold
+
+Parameters:
+  InstanceId:
+    Type: String
+    Description: EC2 instance ID for the disk monitor
+
+  DiskUsageAlertsTopic:
+    Type: String
+    Description: ARN of the SNS topic to notify on alarm
+
+  DiskThreshold:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Value of disk usage threshold from SSM (e.g. /diskmonitor/threshold/percent)
+    Default: /diskmonitor/threshold/percent
+
+Resources:
+  DiskAlarmVol1:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: mnt_vol1_high_disk_usage
+      Namespace: CWAgent
+      MetricName: disk_used_percent
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: !Ref DiskThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: path
+          Value: /mnt/vol1
+        - Name: InstanceId
+          Value: !Ref InstanceId
+        - Name: fstype
+          Value: ext4
+      AlarmActions:
+        - !Ref DiskUsageAlertsTopic
+      TreatMissingData: notBreaching
+      Unit: Percent
+
+  DiskAlarmVol2:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: mnt_vol2_high_disk_usage
+      Namespace: CWAgent
+      MetricName: disk_used_percent
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: !Ref DiskThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: path
+          Value: /mnt/vol2
+        - Name: InstanceId
+          Value: !Ref InstanceId
+        - Name: fstype
+          Value: ext4
+      AlarmActions:
+        - !Ref DiskUsageAlertsTopic
+      TreatMissingData: notBreaching
+      Unit: Percent
+
+  DiskAlarmVol3:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: mnt_vol3_high_disk_usage
+      Namespace: CWAgent
+      MetricName: disk_used_percent
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: !Ref DiskThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: path
+          Value: /mnt/vol3
+        - Name: InstanceId
+          Value: !Ref InstanceId
+        - Name: fstype
+          Value: ext4
+      AlarmActions:
+        - !Ref DiskUsageAlertsTopic
+      TreatMissingData: notBreaching
+      Unit: Percent

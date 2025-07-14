@@ -1,0 +1,22 @@
+{
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:us-east-1:123456789012:disk-usage-alerts:abcdef12-3456-7890-abcd-ef1234567890",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "12345678-1234-5678-9012-abcdefabcdef",
+        "TopicArn": "arn:aws:sns:us-east-1:123456789012:disk-usage-alerts",
+        "Subject": null,
+        "Message": "{\n  \"AlarmName\": \"HighDiskUsage-vol1\",\n  \"AlarmDescription\": \"Disk usage threshold exceeded on /mnt/vol1\",\n  \"AWSAccountId\": \"123456789012\",\n  \"NewStateValue\": \"ALARM\",\n  \"NewStateReason\": \"Threshold Crossed: 1 datapoint [90.3] was greater than or equal to the threshold (85.0).\",\n  \"StateChangeTime\": \"2025-06-28T14:42:00.000+0000\",\n  \"Region\": \"US East (N. Virginia)\",\n  \"OldStateValue\": \"OK\",\n  \"Trigger\": {\n    \"MetricName\": \"disk_used_percent\",\n    \"Namespace\": \"CWAgent\",\n    \"StatisticType\": \"Statistic\",\n    \"Statistic\": \"AVERAGE\",\n    \"Unit\": \"Percent\",\n    \"Dimensions\": [\n      {\n        \"name\": \"instanceid\",\n        \"value\": \"i-03707146cb4004061\"\n      },\n      {\n        \"name\": \"path\",\n        \"value\": \"/mnt/vol1\"\n      },\n      {\n        \"name\": \"fstype\",\n        \"value\": \"ext4\"\n      }\n    ],\n    \"Period\": 60,\n    \"EvaluationPeriods\": 1,\n    \"ComparisonOperator\": \"GreaterThanThreshold\",\n    \"Threshold\": 85.0,\n    \"TreatMissingData\": \"missing\",\n    \"EvaluateLowSampleCountPercentile\": \"\"\n  }\n}",
+        "Timestamp": "2025-06-28T14:42:01.000Z",
+        "SignatureVersion": "1",
+        "Signature": "EXAMPLE",
+        "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService.pem",
+        "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe",
+        "MessageAttributes": {}
+      }
+    }
+  ]
+}

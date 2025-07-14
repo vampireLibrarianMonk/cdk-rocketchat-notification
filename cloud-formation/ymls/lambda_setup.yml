@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda function with VPC access, Rocket.Chat webhook from SSM, and SNS integration
+
+Parameters:
+  LambdaVPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC for Lambda with NAT
+
+  LambdaSG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group for Lambda to access Rocket.Chat
+
+  LambdaPrivateSubnet:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet for Lambda function (must be private with NAT access)
+
+  LambdaFunctionS3Bucket:
+    Type: String
+    Description: S3 bucket where the Lambda deployment package is stored
+
+  LambdaFunctionS3Key:
+    Type: String
+    Description: S3 key (object path) to the Lambda deployment zip
+
+  DiskThresholdPercent:
+    Type: String
+    Default: "85"
+    Description: Threshold percent value for disk usage CloudWatch alarms
+
+  RocketChatWebhookURL:
+    Type: String
+    NoEcho: true
+    Description: The Rocket.Chat webhook URL to store in SSM Parameter Store
+
+Resources:
+
+  DiskUsageThresholdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /diskmonitor/threshold/percent
+      Type: String
+      Value: !Ref DiskThresholdPercent
+      Description: Threshold for disk usage alarm in percent (e.g. 85)
+      Tier: Standard
+
+  WebhookSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /rocketchat/webhook_url
+      Type: String
+      Value: !Ref RocketChatWebhookURL
+      Description: Webhook for Rocket.Chat alerts
+      Tier: Standard
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: RocketChatNotifier
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 128
+      Code:
+        S3Bucket: !Ref LambdaFunctionS3Bucket
+        S3Key: !Ref LambdaFunctionS3Key
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSG
+        SubnetIds:
+          - !Ref LambdaPrivateSubnet
+      Environment:
+        Variables:
+          WEBHOOK_PARAM: "/rocketchat/webhook_url"
+
+  DiskUsageAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: disk-usage-alerts
+
+  LambdaInvokePermissionForSNS:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MyLambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref DiskUsageAlertsTopic
+
+  DiskUsageAlertsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref DiskUsageAlertsTopic
+      Protocol: lambda
+      Endpoint: !GetAtt MyLambdaFunction.Arn
+
+Outputs:
+
+  LambdaFunctionArn:
+    Description: ARN of the deployed Lambda function
+    Value: !GetAtt MyLambdaFunction.Arn
+    Export:
+      Name: LambdaFunctionArn
+
+  LambdaExecutionRoleName:
+    Description: IAM Role used by the Lambda function
+    Value: !Ref LambdaExecutionRole
+    Export:
+      Name: LambdaExecutionRoleName
+
+  WebhookSSMParameterName:
+    Description: Name of the stored webhook parameter
+    Value: !Ref WebhookSSMParameter
+    Export:
+      Name: RocketChatWebhookParameter
+
+  SNSTopicArn:
+    Description: ARN of the SNS topic that triggers the Lambda
+    Value: !Ref DiskUsageAlertsTopic
+    Export:
+      Name: DiskUsageAlertsTopicArn

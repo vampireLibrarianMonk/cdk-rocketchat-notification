@@ -1,0 +1,51 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python egg files
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Mac/Unix/Linux system files
+.DS_Store
+*.log
+
+# AWS CDK outputs
+cdk.out/
+
+# User-specific CDK context
+cdk.context.json
+
+# AWS credential/config overrides (if you ever export these)
+*.pem
+*.key
+*.crt
+
+# Jupyter or notebook files if used in experimentation
+.ipynb_checkpoints/
+
+# VSCode local history (if enabled)
+.history/
+
+# Coverage/test results (if used)
+.coverage
+htmlcov/
+coverage.xml
+
+# Optional: project-level secrets or environment
+.env

@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 instance for Disk Monitor with 3 attached EBS volumes and CloudWatch Agent
+
+Parameters:
+  DiskMonitorSubnet:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet for Disk Monitor EC2 instance
+
+  DiskMonitorSG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group for Disk Monitor EC2 instance
+    
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: ebs_alert_tester
+    
+  ImageId:
+    Type: String
+    Default: ami-0c803b171269e2d72 # us-east-2 ohio
+
+Resources:
+  DemoEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref DemoEC2Role
+
+  EBSAlertTestEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: !Ref ImageId
+      KeyName: !Ref KeyPairName
+      SubnetId: !Ref DiskMonitorSubnet
+      SecurityGroupIds:
+        - !Ref DiskMonitorSG
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      Tags:
+        - Key: Name
+          Value: EBSAlertTestEC2
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          aws s3 cp s3://7235472385972349875234879-cloud-formation-artifacts/user-data/disk_monitor_ec2_setup_v5.sh /tmp/setup.sh
+          chmod +x /tmp/setup.sh
+          /tmp/setup.sh
+        
+  EBSVolume1:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Size: 10
+      VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: EBSVolume1
+
+  EBSVolume2:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Size: 10
+      VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: EBSVolume2
+
+  EBSVolume3:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Size: 10
+      VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: EBSVolume3
+
+  AttachVolume1:
+    Type: AWS::EC2::VolumeAttachment
+    DependsOn: EBSAlertTestEC2
+    Properties:
+      InstanceId: !Ref EBSAlertTestEC2
+      VolumeId: !Ref EBSVolume1
+      Device: /dev/xvdf
+
+  AttachVolume2:
+    Type: AWS::EC2::VolumeAttachment
+    DependsOn: EBSAlertTestEC2
+    Properties:
+      InstanceId: !Ref EBSAlertTestEC2
+      VolumeId: !Ref EBSVolume2
+      Device: /dev/xvdg
+
+  AttachVolume3:
+    Type: AWS::EC2::VolumeAttachment
+    DependsOn: EBSAlertTestEC2
+    Properties:
+      InstanceId: !Ref EBSAlertTestEC2
+      VolumeId: !Ref EBSVolume3
+      Device: /dev/xvdh
+
+Outputs:
+  EBSAlertTestEC2Id:
+    Description: EC2 instance for Disk Monitor
+    Value: !Ref EBSAlertTestEC2

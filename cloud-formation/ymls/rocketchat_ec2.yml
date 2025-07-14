@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 instance for Rocket.Chat with an Elastic IP
+
+Parameters:
+  RocketChatSubnet:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet for Rocket.Chat EC2 instance
+
+  RocketChatSG:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group for Rocket.Chat EC2 instance
+
+  RocketChatEIPAllocationId:
+    Type: String
+    Description: AllocationId of existing Elastic IP to associate with EC2
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: rocketchat_login
+
+  ImageId:
+    Type: String
+    Default: ami-0c803b171269e2d72 # us-east-2 ohio
+
+Resources:
+  DemoEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref DemoEC2Role
+        
+  RocketChatInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.medium
+      ImageId: !Ref ImageId
+      KeyName: !Ref KeyPairName
+      SubnetId: !Ref RocketChatSubnet
+      SecurityGroupIds:
+        - !Ref RocketChatSG
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      Tags:
+        - Key: Name
+          Value: rocketchat-instance
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          aws s3 cp s3://7235472385972349875234879-cloud-formation-artifacts/user-data/rocketchat_setup_v6.sh /tmp/setup.sh
+          chmod +x /tmp/setup.sh
+          /tmp/setup.sh > /var/log/rocketchat_setup.log 2>&1
+
+  RocketChatEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !Ref RocketChatEIPAllocationId
+      InstanceId: !Ref RocketChatInstance
+
+Outputs:
+  RocketChatInstanceId:
+    Description: EC2 instance running Rocket.Chat
+    Value: !Ref RocketChatInstance

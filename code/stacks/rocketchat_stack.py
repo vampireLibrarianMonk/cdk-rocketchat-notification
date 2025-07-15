@@ -18,6 +18,8 @@ class RocketChatStack(Stack):
         eip_allocation_id = CfnParameter(self, "RocketChatEIPAllocationId", type="String")
         key_pair = CfnParameter(self, "KeyPairName", type="AWS::EC2::KeyPair::KeyName", default="rocketchat_login")
         image_id = CfnParameter(self, "ImageId", type="String", default="ami-0c803b171269e2d72")  # us-east-2
+        rocketchat_setup_s3 = CfnParameter(self, "RocketChatSetupScriptS3", type="String")
+        rocketchat_setup_key = CfnParameter(self, "RocketChatSetupScriptKey", type="String")
 
         # === IAM Role ===
         role = iam.Role(self, "DemoEC2Role",
@@ -47,9 +49,13 @@ class RocketChatStack(Stack):
             user_data=Fn.base64(
                 Fn.sub(
                     """#!/bin/bash
-aws s3 cp s3://7235472385972349875234879-cloud-formation-artifacts/user-data/rocketchat_setup_v6.sh /tmp/setup.sh
-chmod +x /tmp/setup.sh
-/tmp/setup.sh > /var/log/rocketchat_setup.log 2>&1"""
+            aws s3 cp s3://${RocketChatSetupScriptS3}/${RocketChatSetupScriptKey} /tmp/setup.sh
+            chmod +x /tmp/setup.sh
+            /tmp/setup.sh > /var/log/rocketchat_setup.log 2>&1""",
+                    {
+                        "RocketChatSetupScriptS3": rocketchat_setup_s3.value_as_string,
+                        "RocketChatSetupScriptKey": rocketchat_setup_key.value_as_string
+                    }
                 )
             )
         )

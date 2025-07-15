@@ -20,11 +20,13 @@ class LambdaStack(Stack):
         # === Parameters ===
         lambda_vpc = CfnParameter(self, "LambdaVPC", type="AWS::EC2::VPC::Id")
         lambda_sg = CfnParameter(self, "LambdaSG", type="AWS::EC2::SecurityGroup::Id")
-        lambda_subnet = CfnParameter(self, "LambdaPrivateSubnet", type="AWS::EC2::Subnet::Id")
-        lambda_bucket = CfnParameter(self, "LambdaFunctionS3Bucket", type="String")
-        lambda_key = CfnParameter(self, "LambdaFunctionS3Key", type="String")
+        lambda_private_subnet = CfnParameter(self, "LambdaPrivateSubnet", type="AWS::EC2::Subnet::Id")
+        lambda_public_subnet = CfnParameter(self, "LambdaPublicSubnet", type="AWS::EC2::Subnet::Id")
+        lambda_bucket = CfnParameter(self, "LambdaS3Bucket", type="String")
+        lambda_key = CfnParameter(self, "LambdaS3Key", type="String")
         disk_threshold = CfnParameter(self, "DiskThresholdPercent", type="String", default="85")
         webhook_url = CfnParameter(self, "RocketChatWebhookURL", type="String", no_echo=True)
+        availability_zone = CfnParameter(self, "AvailabilityZone", type="String")
 
         # === SSM Parameters ===
         ssm.StringParameter(self, "DiskUsageThresholdParameter",
@@ -49,11 +51,20 @@ class LambdaStack(Stack):
             ]
         )
 
-        # === Lambda Function ===
-        az = CfnParameter(self, "AvailabilityZone", type="String")
-        lambda_public_subnet_id = CfnParameter(self, "LambdaPublicSubnetID", type="AWS::EC2::Subnet::Id")
-        lambda_private_subnet_id = CfnParameter(self, "LambdaPrivateSubnetID", type="AWS::EC2::Subnet::Id")
+        # === VPC Reference with Both Subnets ===
+        vpc = ec2.Vpc.from_vpc_attributes(self, "LambdaVPCRef",
+            vpc_id=lambda_vpc.value_as_string,
+            availability_zones=[availability_zone.value_as_string],
+            private_subnet_ids=[lambda_private_subnet.value_as_string],
+            public_subnet_ids=[lambda_public_subnet.value_as_string]
+        )
 
+        # === Security Group Reference ===
+        security_group = ec2.SecurityGroup.from_security_group_id(
+            self, "LambdaSGRef", lambda_sg.value_as_string
+        )
+
+        # === Lambda Function ===
         lambda_func = _lambda.Function(self, "RocketChatNotifier",
             function_name="RocketChatNotifier",
             runtime=_lambda.Runtime.PYTHON_3_12,
@@ -65,15 +76,9 @@ class LambdaStack(Stack):
             role=lambda_role,
             timeout=Duration.seconds(30),
             memory_size=128,
-            vpc=ec2.Vpc.from_vpc_attributes(self, "LambdaVPCRef",
-                vpc_id=lambda_vpc.value_as_string,
-                availability_zones=[az.value_as_string],
-                public_subnet_ids=[lambda_public_subnet_id.value_as_string],
-                private_subnet_ids=[lambda_private_subnet_id.value_as_string]
-            ),
-            security_groups=[
-                ec2.SecurityGroup.from_security_group_id(self, "LambdaSGRef", lambda_sg.value_as_string)
-            ],
+            vpc=vpc,
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS),
+            security_groups=[security_group],
             environment={
                 "WEBHOOK_PARAM": "/rocketchat/webhook_url"
             }

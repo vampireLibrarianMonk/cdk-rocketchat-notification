@@ -7,8 +7,16 @@ usage() {
   echo ""
   echo "  $0 --clear [MOUNT_PATH]"
   echo "    → Remove fillfile_* from MOUNT_PATH"
+  echo ""
+  echo "  $0 --help | -h"
+  echo "    → Show this help message"
   exit 1
 }
+
+# Show help
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+  usage
+fi
 
 # Clear mode
 if [[ "$1" == "--clear" ]]; then

@@ -205,8 +205,16 @@ class EnvSetupStack(Stack):
             description="Elastic IP allocation ID for Rocket.Chat EC2 instance"
         )
 
+
+        # VPC Outpputs
+        CfnOutput(self, "DISK_MONITOR_VPC", value=disk_vpc.ref, description="VPC ID for Disk Monitor")
+        CfnOutput(self, "ROCKETCHAT_VPC", value=rocketchat_vpc.ref, description="VPC ID for Rocket.Chat")
+        CfnOutput(self, "LAMBDA_VPC", value=lambda_vpc.ref, description="VPC ID for Lambda")
+
         # Subnet Outputs
         CfnOutput(self, "DISK_MONITOR_SUBNET", value=disk_subnet.ref, description="Subnet for Disk Monitor EC2")
+        CfnOutput(self, "LAMBDA_PRIVATE_SUBNET", value=lambda_priv_subnet.ref, description="Private Subnet for Lambda")
+        CfnOutput(self, "LAMBDA_PUBLIC_SUBNET", value=lambda_pub_subnet.ref, description="Public Subnet for Lambda")
         CfnOutput(self, "ROCKETCHAT_SUBNET", value=rocketchat_subnet.ref, description="Subnet for Rocket.Chat EC2")
 
         # SG Outputs

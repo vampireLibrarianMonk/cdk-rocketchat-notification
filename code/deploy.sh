@@ -39,6 +39,10 @@ deploy_disk_stack() {
   : "${DISK_MONITOR_SG:?Missing DISK_MONITOR_SG}"
   : "${KEY_PAIR_NAME:?Missing KEY_PAIR_NAME}"
   : "${IMAGE_ID:?Missing IMAGE_ID}"
+  : "${DISK_MONITOR_SETUP_S3:?Missing DISK_MONITOR_SETUP_S3}"
+  : "${DISK_MONITOR_SETUP_KEY:?Missing DISK_MONITOR_SETUP_KEY}"
+  : "${DISK_FILL_SCRIPT_S3:?Missing DISK_FILL_SCRIPT_S3}"
+  : "${DISK_FILL_SCRIPT_KEY:?Missing DISK_FILL_SCRIPT_KEY}"
 
   echo "💽 Deploying DiskMonitorStack..."
   cdk deploy DiskMonitorStack \
@@ -46,6 +50,10 @@ deploy_disk_stack() {
     --parameters DiskMonitorSG=$DISK_MONITOR_SG \
     --parameters KeyPairName=$KEY_PAIR_NAME \
     --parameters ImageId=$IMAGE_ID \
+    --parameters DiskMonitorSetupS3=$DISK_MONITOR_SETUP_S3 \
+    --parameters DiskMonitorSetupKey=$DISK_MONITOR_SETUP_KEY \
+    --parameters DiskFillScriptS3=$DISK_FILL_SCRIPT_S3 \
+    --parameters DiskFillScriptKey=$DISK_FILL_SCRIPT_KEY \
     "$@"
 }
 
@@ -69,6 +77,7 @@ deploy_rocketchat_stack() {
 deploy_lambda_stack() {
   : "${LAMBDA_VPC:?Missing LAMBDA_VPC}"
   : "${LAMBDA_SG:?Missing LAMBDA_SG}"
+  : "${LAMBDA_PUBLIC_SUBNET:?Missing LAMBDA_PUBLIC_SUBNET}"
   : "${LAMBDA_PRIVATE_SUBNET:?Missing LAMBDA_PRIVATE_SUBNET}"
   : "${LAMBDA_S3_BUCKET:?Missing LAMBDA_S3_BUCKET}"
   : "${LAMBDA_S3_KEY:?Missing LAMBDA_S3_KEY}"
@@ -79,11 +88,13 @@ deploy_lambda_stack() {
   cdk deploy LambdaStack \
     --parameters LambdaVPC=$LAMBDA_VPC \
     --parameters LambdaSG=$LAMBDA_SG \
+    --parameters LambdaPublicSubnet=$LAMBDA_PUBLIC_SUBNET \
     --parameters LambdaPrivateSubnet=$LAMBDA_PRIVATE_SUBNET \
-    --parameters LambdaFunctionS3Bucket=$LAMBDA_S3_BUCKET \
-    --parameters LambdaFunctionS3Key=$LAMBDA_S3_KEY \
+    --parameters LambdaS3Bucket=$LAMBDA_S3_BUCKET \
+    --parameters LambdaS3Key=$LAMBDA_S3_KEY \
     --parameters DiskThresholdPercent=$DISK_THRESHOLD_PERCENT \
     --parameters RocketChatWebhookURL=$ROCKETCHAT_WEBHOOK_URL \
+    --parameters AvailabilityZone=$AVAILABILITY_ZONE \
     "$@"
 }
 

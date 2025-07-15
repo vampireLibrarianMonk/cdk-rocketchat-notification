@@ -16,7 +16,11 @@ class DiskMonitorStack(Stack):
         disk_monitor_subnet = CfnParameter(self, "DiskMonitorSubnet", type="AWS::EC2::Subnet::Id")
         disk_monitor_sg = CfnParameter(self, "DiskMonitorSG", type="AWS::EC2::SecurityGroup::Id")
         key_pair_name = CfnParameter(self, "KeyPairName", type="AWS::EC2::KeyPair::KeyName", default="ebs_alert_tester")
-        image_id = CfnParameter(self, "ImageId", type="String", default="ami-0c803b171269e2d72")  # us-east-2 (Ohio)
+        image_id = CfnParameter(self, "ImageId", type="String", default="ami-0c803b171269e2d72") 
+        disk_monitor_setup_s3 = CfnParameter(self, "DiskMonitorSetupS3", type="String")
+        disk_monitor_setup_key = CfnParameter(self, "DiskMonitorSetupKey", type="String")
+        disk_fill_script_s3 = CfnParameter(self, "DiskFillScriptS3", type="String")
+        disk_fill_script_key = CfnParameter(self, "DiskFillScriptKey", type="String")
 
         # === IAM Role ===
         demo_role = iam.Role(self, "DemoEC2Role",
@@ -44,13 +48,23 @@ class DiskMonitorStack(Stack):
             user_data=Fn.base64(
                 Fn.sub(
                     """#!/bin/bash
-aws s3 cp s3://7235472385972349875234879-cloud-formation-artifacts/user-data/disk_monitor_ec2_setup_v5.sh /tmp/setup.sh
-chmod +x /tmp/setup.sh
-/tmp/setup.sh"""
+            aws s3 cp s3://${DiskMonitorSetupS3}/${DiskMonitorSetupKey} /tmp/setup.sh
+            chmod +x /tmp/setup.sh
+            /tmp/setup.sh
+
+            aws s3 cp s3://${DiskFillScriptS3}/${DiskFillScriptKey} /usr/local/bin/disk_fill_tool.sh
+            chmod +x /usr/local/bin/disk_fill_tool.sh
+            """,
+                    {
+                        "DiskMonitorSetupS3": disk_monitor_setup_s3.value_as_string,
+                        "DiskMonitorSetupKey": disk_monitor_setup_key.value_as_string,
+                        "DiskFillScriptS3": disk_fill_script_s3.value_as_string,
+                        "DiskFillScriptKey": disk_fill_script_key.value_as_string
+                    }
                 )
             )
         )
-
+            
         # === EBS Volumes ===
         az = Fn.select(0, Fn.get_azs(""))
 

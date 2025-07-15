@@ -178,7 +178,31 @@ Note: The -j flag strips directory paths so only the .py file is zipped at the r
 
 Upload the resulting lambda_function.zip to your designated S3 `LAMBDA_S3_BUCKET` and `LAMBDA_S3_KEY` in `.env.cdk.params` before CDK deployment.
 
-### 6. Deploy CDK Stacks (using deploy.sh)
+### 6. Disk Monitor Script Upload
+To support disk fill testing and EC2 setup, upload the following scripts to your designated S3 bucket locations:
+
+| Script Source Path                            | Target S3 Bucket Key                        | .env.cdk.params Variables                              |
+|----------------------------------------------|---------------------------------------------|-----------------------------------------------------|
+| `cloud-formation/sh/disk_fill_tool.sh`       | `scripts/disk_fill_tool.sh`                | `DISK_FILL_SCRIPT_S3`, `DISK_FILL_SCRIPT_KEY`       |
+| `cloud-formation/sh/disk_monitor_ec2_setup.sh`| `user-data/disk_monitor_ec2_setup.sh`      | `DISK_MONITOR_SETUP_S3`, `DISK_MONITOR_SETUP_KEY`   |
+
+Use the appropriate bucket for each script as defined in your environment:
+* DISK_FILL_SCRIPT_S3: bucket for the fill tool
+* DISK_MONITOR_SETUP_S3: bucket for the EC2 setup script
+
+These scripts are automatically fetched and executed as part of the EC2 instance's user data.
+
+### 7. Rocket.Chat Setup Script Upload
+
+Before deploying the Rocket.Chat stack, upload the setup script to the designated S3 bucket and key.
+
+| Script Source Path                            | Target S3 Bucket Key                        | Related Env Variables                                     |
+|----------------------------------------------|---------------------------------------------|------------------------------------------------------------|
+| `cloud-formation/sh/rocketchat_setup.sh`     | `user-data/rocketchat_setup.sh`            | `ROCKETCHAT_SETUP_SCRIPT_S3`, `ROCKETCHAT_SETUP_SCRIPT_KEY` |
+
+The EC2 instance will fetch and execute this script on boot using the User Data field.
+
+### 8. Deploy CDK Stacks (using deploy.sh)
 To simplify deployment and enforce proper stack order, use the included deploy.sh script located in the project root.
 
 This script:
@@ -187,7 +211,7 @@ This script:
 * Deploys CDK stacks with the correct parameters
 * Ensures EnvSetupStack is deployed before DiskMonitorStack and DiskMonitorStack before RocketChatStack
 
-### 7. One-Time Setup
+### 9. One-Time Setup
 Important to note the following before using the `deploy.sh`
 * Ensure the FACILITY_PREFIX_LIST_ID is found per company policy or is created/recorded prior.
 * Ensure the AVAILABILITY_ZONE coincides in the region where you will pick the FACILITY_PREFIX_LIST_ID.
@@ -198,7 +222,7 @@ Ensure deploy.sh is executable:
 chmod +x deploy.sh
 ```
 
-### 8. Full Deployment (in proper order)
+### 10. Full Deployment (in proper order)
 ```bash
 ./deploy.sh all
 ```
@@ -210,7 +234,7 @@ This will:
 * Deploy LambdaStack (Lambda function inside VPC, SSM-integrated, triggered via SNS)
 * Deploy CloudWatchAlarmStack (Disk usage alarms on EC2 instance volumes, connected to Lambda via SNS)
 
-### 9. Deploy Individual Stacks
+### 11. Deploy Individual Stacks
 ⚠️ Ensure EnvSetupStack is deployed first. DiskMonitorStack, RocketChatStack, and LambdaStack all rely on subnet, security group or networking outputs created in that foundational stack. Additionally, CloudWatchAlarmStack depends on both EnvSetupStack and the EC2 instance provisioned by DiskMonitorStack.
 
 Deploy Env Setup Stack

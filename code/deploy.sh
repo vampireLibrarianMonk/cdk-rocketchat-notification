@@ -37,8 +37,8 @@ deploy_env_stack() {
 deploy_disk_stack() {
   : "${DISK_MONITOR_SUBNET:?Missing DISK_MONITOR_SUBNET}"
   : "${DISK_MONITOR_SG:?Missing DISK_MONITOR_SG}"
-  : "${KEY_PAIR_NAME:?Missing KEY_PAIR_NAME}"
-  : "${IMAGE_ID:?Missing IMAGE_ID}"
+  : "${DISK_MONITOR_KEY_PAIR:?Missing DISK_MONITOR_KEY_PAIR}"
+  : "${DISK_MONITOR_IMAGE_ID:?Missing DISK_MONITOR_IMAGE_ID}"
   : "${DISK_MONITOR_SETUP_S3:?Missing DISK_MONITOR_SETUP_S3}"
   : "${DISK_MONITOR_SETUP_KEY:?Missing DISK_MONITOR_SETUP_KEY}"
   : "${DISK_FILL_SCRIPT_S3:?Missing DISK_FILL_SCRIPT_S3}"
@@ -48,8 +48,8 @@ deploy_disk_stack() {
   cdk deploy DiskMonitorStack \
     --parameters DiskMonitorSubnet=$DISK_MONITOR_SUBNET \
     --parameters DiskMonitorSG=$DISK_MONITOR_SG \
-    --parameters KeyPairName=$KEY_PAIR_NAME \
-    --parameters ImageId=$IMAGE_ID \
+    --parameters DiskMonitorKeyPair=$DISK_MONITOR_KEY_PAIR \
+    --parameters DiskMonitorImageId=$DISK_MONITOR_IMAGE_ID \
     --parameters DiskMonitorSetupS3=$DISK_MONITOR_SETUP_S3 \
     --parameters DiskMonitorSetupKey=$DISK_MONITOR_SETUP_KEY \
     --parameters DiskFillScriptS3=$DISK_FILL_SCRIPT_S3 \
@@ -63,6 +63,8 @@ deploy_rocketchat_stack() {
   : "${ROCKETCHAT_EIP_ALLOC_ID:?Missing ROCKETCHAT_EIP_ALLOC_ID}"
   : "${ROCKETCHAT_KEY_PAIR:?Missing ROCKETCHAT_KEY_PAIR}"
   : "${ROCKETCHAT_IMAGE_ID:?Missing ROCKETCHAT_IMAGE_ID}"
+  : "${ROCKETCHAT_SETUP_SCRIPT_S3:?Missing ROCKETCHAT_SETUP_SCRIPT_S3}"
+  : "${ROCKETCHAT_SETUP_SCRIPT_KEY:?Missing ROCKETCHAT_SETUP_SCRIPT_KEY}"
 
   echo "💬 Deploying RocketChatStack..."
   cdk deploy RocketChatStack \
@@ -71,6 +73,8 @@ deploy_rocketchat_stack() {
     --parameters RocketChatEIPAllocationId=$ROCKETCHAT_EIP_ALLOC_ID \
     --parameters KeyPairName=$ROCKETCHAT_KEY_PAIR \
     --parameters ImageId=$ROCKETCHAT_IMAGE_ID \
+    --parameters RocketChatSetupScriptS3=$ROCKETCHAT_SETUP_SCRIPT_S3 \
+    --parameters RocketChatSetupScriptKey=$ROCKETCHAT_SETUP_SCRIPT_KEY \
     "$@"
 }
 

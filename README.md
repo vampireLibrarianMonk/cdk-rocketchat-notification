@@ -222,19 +222,7 @@ Ensure deploy.sh is executable:
 chmod +x deploy.sh
 ```
 
-### 10. Full Deployment (in proper order)
-```bash
-./deploy.sh all
-```
-
-This will:
-* Deploy EnvSetupStack (VPCs, subnets, networking)
-* Deploy DiskMonitorStack (EC2 instance, volumes, IAM)
-* Deploy RocketChatStack (EC2 instance + EIP for Rocket.Chat)
-* Deploy LambdaStack (Lambda function inside VPC, SSM-integrated, triggered via SNS)
-* Deploy CloudWatchAlarmStack (Disk usage alarms on EC2 instance volumes, connected to Lambda via SNS)
-
-### 11. Deploy Individual Stacks
+### 10. Deploy Individual Stacks
 ⚠️ Ensure EnvSetupStack is deployed first. DiskMonitorStack, RocketChatStack, and LambdaStack all rely on subnet, security group or networking outputs created in that foundational stack. Additionally, CloudWatchAlarmStack depends on both EnvSetupStack and the EC2 instance provisioned by DiskMonitorStack.
 
 Deploy Env Setup Stack
@@ -242,33 +230,90 @@ Deploy Env Setup Stack
 This foundational stack provisions the networking layer, including VPC, public and private subnets, route tables, internet gateway, NAT gateway and security groups. It provides shared infrastructure used by all other stacks.
 
 ```bash
-./deploy.sh EnvSetupStack
+bash deploy.sh EnvSetupStack
 ```
 
 Deploy Disk Monitor Stack
 This stack provisions an EC2 instance with three attached EBS volumes mounted at /mnt/vol1, /mnt/vol2, and /mnt/vol3. It configures CloudWatch Agent and IAM permissions for metric collection and remote management.
 
+Carry Over Variables from EnvSetupStack:
+* DISK_MONITOR_SUBNET
+* DISK_MONITOR_SG
+
+Carry Over Variables from the key pair name for the Disk Monitor Instance
+* DISK_MONITOR_KEY_PAIR
+
+The region EC2 AMI ID you will use:
+* DISK_MONITOR_IMAGE_ID
+
+S3 Bucket and Keys Assocaited with the Disk Monitor Setup and Disk Fill Scripts:
+* DISK_FILL_SCRIPT_S3
+* DISK_FILL_SCRIPT_KEY
+* DISK_MONITOR_SETUP_S3
+* DISK_MONITOR_SETUP_KEY
+
 ```bash
-./deploy.sh DiskMonitorStack
+bash deploy.sh DiskMonitorStack
 ```
 
 Deploy RocketChat Stack
 This stack launches a self-hosted Rocket.Chat server on an EC2 instance, assigning it a static Elastic IP. It uses user data to automate the full startup and installation process.
 
+Carry Over Variables from EnvSetupStack:
+* ROCKETCHAT_SUBNET
+* ROCKETCHAT_SG
+* ROCKETCHAT_EIP_ALLOC_ID (Get this using step 4 above using the output IP Address)
+
+Carry Over Variables from the key pair name for the Disk Monitor Instance
+* ROCKETCHAT_KEY_PAIR
+
+The region EC2 AMI ID you will use:
+* ROCKETCHAT_IMAGE_ID
+
+S3 Bucket and Keys Assocaited with the Disk Monitor Setup and Disk Fill Scripts:
+* ROCKETCHAT_SETUP_SCRIPT_S3
+* ROCKETCHAT_SETUP_SCRIPT_KEY
+
 ```bash
-./deploy.sh RocketChatStack
+bash deploy.sh RocketChatStack
 ```
 
 Deploy Lambda Notification Stack
 This stack provisions a Lambda function that runs inside a private subnet with NAT access. It posts disk usage alerts to Rocket.Chat using a webhook stored in AWS SSM, and is triggered by an SNS topic subscribed to CloudWatch alarms.
 
+Carry Over Variables from EnvSetupStack:
+* LAMBDA_VPC
+* LAMBDA_SG
+* LAMBDA_PRIVATE_SUBNET
+* LAMBDA_PUBLIC_SUBNET
+
+S3 Bucket and Keys associated with the zipped up `lambda_function.py`.
+* LAMBDA_S3_BUCKET
+* LAMBDA_S3_KEY
+
+Disk Threshold to Use:
+* DISK_THRESHOLD_PERCENT
+
+Log into the public ip:3000 of RocketChat using the user_data username and password for the admin account then skip registration by reloading the public ip:3000. Go to Workspace --> Integrations --> Disk Usage Alerts and copy the webhook url.
+* ROCKETCHAT_WEBHOOK_URL
+
+The pick the availability zone in the same region as the rest of your deployment:
+* AVAILABILITY_ZONE
+
 ```bash
-./deploy.sh LambdaStack
+bash deploy.sh LambdaStack
 ```
 
 Deploy CloudWatch Alarm Stack
 This stack sets up CloudWatch alarms on /mnt/vol1, /mnt/vol2, and /mnt/vol3, using CloudWatch Agent metrics collected from the EC2 instance. The alarms are configured to trigger when disk usage exceeds a threshold pulled dynamically from AWS SSM.
 
+Carry Over from the DiskMonitorStack:
+* DISK_MONITOR_INSTANCE_ID
+
+Carry Over from the LambdaStack:
+* DISK_USAGE_ALERTS_TOPIC_ARN
+* DISK_THRESHOLD_PARAM_NAME
+
 ```bash
-./deploy.sh CloudWatchAlarmStack
+bash deploy.sh CloudWatchAlarmStack
 ```

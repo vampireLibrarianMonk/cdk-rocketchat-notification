@@ -24,12 +24,12 @@ class LambdaStack(Stack):
         lambda_public_subnet = CfnParameter(self, "LambdaPublicSubnet", type="AWS::EC2::Subnet::Id")
         lambda_bucket = CfnParameter(self, "LambdaS3Bucket", type="String")
         lambda_key = CfnParameter(self, "LambdaS3Key", type="String")
-        disk_threshold = CfnParameter(self, "DiskThresholdPercent", type="String", default="85")
+        disk_threshold = CfnParameter(self, "DiskThresholdPercent", type="String")
         webhook_url = CfnParameter(self, "RocketChatWebhookURL", type="String", no_echo=True)
         availability_zone = CfnParameter(self, "AvailabilityZone", type="String")
 
         # === SSM Parameters ===
-        ssm.StringParameter(self, "DiskUsageThresholdParameter",
+        disk_threshold_param = ssm.StringParameter(self, "DiskUsageThresholdParameter",
             parameter_name="/diskmonitor/threshold/percent",
             string_value=disk_threshold.value_as_string,
             description="Threshold for disk usage alarm in percent (e.g. 85)"
@@ -101,4 +101,5 @@ class LambdaStack(Stack):
         CfnOutput(self, "LambdaFunctionArn", value=lambda_func.function_arn)
         CfnOutput(self, "LambdaExecutionRoleName", value=lambda_role.role_name)
         CfnOutput(self, "WebhookSSMParameterName", value=webhook_param.parameter_name)
+        CfnOutput(self, "DiskThresholdParameterName", value=disk_threshold_param.parameter_name)
         CfnOutput(self, "SNSTopicArn", value=sns_topic.topic_arn)

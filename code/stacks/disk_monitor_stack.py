@@ -15,8 +15,8 @@ class DiskMonitorStack(Stack):
         # === Parameters ===
         disk_monitor_subnet = CfnParameter(self, "DiskMonitorSubnet", type="AWS::EC2::Subnet::Id")
         disk_monitor_sg = CfnParameter(self, "DiskMonitorSG", type="AWS::EC2::SecurityGroup::Id")
-        key_pair_name = CfnParameter(self, "KeyPairName", type="AWS::EC2::KeyPair::KeyName", default="ebs_alert_tester")
-        image_id = CfnParameter(self, "ImageId", type="String", default="ami-0c803b171269e2d72") 
+        key_pair_name = CfnParameter(self, "DiskMonitorKeyPair", type="AWS::EC2::KeyPair::KeyName", default="ebs_alert_tester")
+        image_id = CfnParameter(self, "DiskMonitorImageId", type="String", default="ami-0c803b171269e2d72") 
         disk_monitor_setup_s3 = CfnParameter(self, "DiskMonitorSetupS3", type="String")
         disk_monitor_setup_key = CfnParameter(self, "DiskMonitorSetupKey", type="String")
         disk_fill_script_s3 = CfnParameter(self, "DiskFillScriptS3", type="String")

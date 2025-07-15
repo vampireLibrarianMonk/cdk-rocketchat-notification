@@ -66,7 +66,6 @@ class LambdaStack(Stack):
 
         # === Lambda Function ===
         lambda_func = _lambda.Function(self, "RocketChatNotifier",
-            function_name="RocketChatNotifier",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",
             code=_lambda.Code.from_bucket(

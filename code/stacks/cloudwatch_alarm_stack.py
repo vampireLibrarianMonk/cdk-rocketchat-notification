@@ -13,7 +13,7 @@ class CloudWatchAlarmStack(Stack):
         # === Parameters ===
         instance_id = CfnParameter(self, "InstanceId", type="String")
         sns_topic_arn = CfnParameter(self, "DiskUsageAlertsTopic", type="String")
-        disk_threshold_param = CfnParameter(self, "DiskThreshold", type="AWS::SSM::Parameter::Value<String>",
+        disk_threshold_param = CfnParameter(self, "DiskThresholdParamName", type="AWS::SSM::Parameter::Value<String>",
                                             default="/diskmonitor/threshold/percent")
 
         # === Common alarm builder ===

@@ -111,7 +111,7 @@ deploy_cloudwatch_alarm_stack() {
   cdk deploy CloudWatchAlarmStack \
     --parameters InstanceId=$DISK_MONITOR_INSTANCE_ID \
     --parameters DiskUsageAlertsTopic=$DISK_USAGE_ALERTS_TOPIC_ARN \
-    --parameters DiskThreshold=$DISK_THRESHOLD_PARAM_NAME \
+    --parameters DiskThresholdParamName=$DISK_THRESHOLD_PARAM_NAME \
     "$@"
 }
 

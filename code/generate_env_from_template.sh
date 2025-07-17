@@ -11,6 +11,7 @@ if [ -f "$OUTPUT_FILE" ]; then
   read -p "$OUTPUT_FILE already exists. Overwrite? (y/n): " confirm
   case "$confirm" in
     [yY][eE][sS]|[yY]) 
+      rm -f $OUTPUT_FILE
       echo "Overwriting $OUTPUT_FILE..."
       ;;
     *)

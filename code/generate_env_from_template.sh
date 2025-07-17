@@ -1,8 +1,27 @@
 #!/bin/bash
 # Script to generate a .env.cdk.params file from a template with preserved comments
 
+#!/bin/bash
+# Script to generate a .env.cdk.params file from a template with preserved comments
+
+OUTPUT_FILE=".env.cdk.params"
+
+# Check if the file already exists
+if [ -f "$OUTPUT_FILE" ]; then
+  read -p "$OUTPUT_FILE already exists. Overwrite? (y/n): " confirm
+  case "$confirm" in
+    [yY][eE][sS]|[yY]) 
+      echo "Overwriting $OUTPUT_FILE..."
+      ;;
+    *)
+      echo "Aborted. File not overwritten."
+      exit 1
+      ;;
+  esac
+fi
+
+# Write content to the file
 OUTPUT_FILE=.env.cdk.params
-echo "Creating $OUTPUT_FILE..."
 echo "# === Environment configuration for CDK deployments ===" >> $OUTPUT_FILE
 echo "" >> $OUTPUT_FILE
 echo "# Ensure the FACILITY_PREFIX_LIST_ID is found per company policy or is created/recorded prior." >> $OUTPUT_FILE
@@ -11,9 +30,9 @@ echo "# Ensure the AVAILABILITY_ZONE coincides in the region where you will pick
 echo "" >> $OUTPUT_FILE
 echo "# For env_setup_stack.py" >> $OUTPUT_FILE
 echo "AVAILABILITY_ZONE={VALUE}" >> $OUTPUT_FILE
-echo "CIDR_DISK_MONITOR_VPC={VALUE}" >> $OUTPUT_FILE
-echo "CIDR_ROCKETCHAT_VPC={VALUE}" >> $OUTPUT_FILE
-echo "CIDR_LAMBDA_VPC={VALUE}" >> $OUTPUT_FILE
+echo "CIDR_DISK_MONITOR_VPC=10.10.0.0/28" >> $OUTPUT_FILE
+echo "CIDR_ROCKETCHAT_VPC=10.20.0.0/28" >> $OUTPUT_FILE
+echo "CIDR_LAMBDA_VPC=10.0.0.0/27" >> $OUTPUT_FILE
 echo "FACILITY_PREFIX_LIST_ID={VALUE}" >> $OUTPUT_FILE
 echo "" >> $OUTPUT_FILE
 echo "# For disk_monitor_stack.py" >> $OUTPUT_FILE

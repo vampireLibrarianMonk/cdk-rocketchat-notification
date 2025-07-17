@@ -4,7 +4,7 @@ This project uses the **AWS Cloud Development Kit (CDK)** with **Python** and re
 
 ---
 
-### 1. Install Node.js 20 (Ubuntu)
+### 1. Install Node.js 20 (Ubuntu) (Windows via steps found to copy via https://nodejs.org/en/download)
 
 Install Node.js 20 via the official NodeSource repo:
 
@@ -114,6 +114,11 @@ Node.js 20 is required for CDK CLI v2.x to function properly.
 
 ## Cloud Development Kit (CDK)
 
+### 0. Generate the environment cdk parameters file
+Use the `code/generate_env_from_template.sh` to generate a fresh `.env.cdk.params` file.
+
+
+
 ### 1. How to Use
 Source the environment file:
 
@@ -145,8 +150,8 @@ This only needs to be done once per AWS account and region combination. If your 
 Step 1: Create your key pair manually (e.g., ebs_alert_tester.pem and rocketchat_login.pem) via AWS Console or CLI:
 
 ```bash
-aws ec2 create-key-pair --key-name rocketchat_login --query 'KeyMaterial' --output text > [rocketchat_login.pem|ebs_alert_tester]
-chmod 400 [rocketchat_login.pem|ebs_alert_tester]
+aws ec2 create-key-pair --key-name [rocketchat_login|ebs_alert_tester] --query 'KeyMaterial' --output text > [rocketchat_login.pem|ebs_alert_tester.pem]
+chmod 400 [rocketchat_login.pem|ebs_alert_tester.pem]
 ```
 
 ### 4. Retrieving the Rocket.Chat Elastic IP Allocation ID

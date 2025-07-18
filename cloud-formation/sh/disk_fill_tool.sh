@@ -46,7 +46,7 @@ INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
   http://169.254.169.254/latest/meta-data/instance-id)
 
 # Find EBS Volume ID using nvme list
-VOLUME_ID=$(sudo nvme list | awk -v dev="/dev/$DEVICE_ROOT" '$1 == dev && $2 ~ /^vol/ { print "vol-" substr($2, 4) }')
+VOLUME_ID=$(sudo nvme list | awk -v dev="/dev/$DEVICE_ROOT" '$1 == dev { gsub(/^vol/, "vol-", $3); print $3 }')
 
 if [[ -z "$VOLUME_ID" ]]; then
   echo "❌ Could not determine EBS volume ID."

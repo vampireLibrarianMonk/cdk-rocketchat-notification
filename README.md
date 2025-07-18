@@ -299,7 +299,7 @@ S3 Bucket and Keys associated with the zipped up `lambda_function.py`.
 Disk Threshold to Use:
 * DISK_THRESHOLD_PERCENT
 
-Log into the public ip:3000 of RocketChat using the user_data username and password for the admin account then skip registration by reloading the public ip:3000. Go to Workspace --> Integrations --> Disk Usage Alerts and copy the webhook url.
+Log into the public ip:3000 of RocketChat using the user_data username and password for the admin account (from the docker run section of rocketchat in `cloud-formation/sh/rocketchat_setup.sh`) then skip registration by reloading the public ip:3000. Go to Workspace --> Integrations --> Disk Usage Alerts and copy the webhook url.
 * ROCKETCHAT_WEBHOOK_URL
 
 The pick the availability zone in the same region as the rest of your deployment:

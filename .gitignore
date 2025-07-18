@@ -49,3 +49,4 @@ coverage.xml
 
 # Optional: project-level secrets or environment
 .env
+.env.cdk.params

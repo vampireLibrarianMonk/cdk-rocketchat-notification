@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# (c) 2025 Amazon Web Services, Inc. All Rights Reserved.
+# This AWS content is subject to the terms of C2E Task Order 5502/HM047623F0080
+
 set -e
 
 # Update and install Docker
@@ -25,6 +28,9 @@ TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
 
 EC2_PRIVATE_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
   http://169.254.169.254/latest/meta-data/local-ipv4)
+
+EC2_PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/public-ipv4)
 
 echo "Private IP detected: $EC2_PRIVATE_IP"
 
@@ -55,6 +61,21 @@ docker exec mongo mongosh --eval "rs.initiate({
 echo "Waiting for replica set to stabilize..."
 sleep 5
 
+ROCKETCHAT_USERNAME=ec2-user
+
+# Save to .env
+echo "ROCKETCHAT_USERNAME=${ROCKETCHAT_USERNAME}" >> /tmp/.rocketchat_env_var
+
+# Create a randomized password for rocketchat admin
+echo "Generating Rocket.Chat admin password..."
+ROCKETCHAT_PASSWORD=$(head -c 32 /dev/urandom | base64 | head -c 32)
+
+# Print confirmation (masked)
+echo "Password generated and stored in .env file (value masked): ***************"
+
+# Save to .env
+echo "ROCKETCHAT_PASSWORD=${ROCKETCHAT_PASSWORD}" >> /tmp/.rocketchat_env_var
+
 # Start Rocket.Chat container
 echo "Starting Rocket.Chat container..."
 docker run -d \
@@ -64,7 +85,7 @@ docker run -d \
   -e MONGO_OPLOG_URL="mongodb://${EC2_PRIVATE_IP}:27017/local?replicaSet=rs0" \
   -e ROOT_URL="http://${EC2_PRIVATE_IP}:3000" \
   -e ADMIN_USERNAME=ec2-user \
-  -e ADMIN_PASS=StrongPassword123! \
+  -e ADMIN_PASS="${ROCKETCHAT_PASSWORD}" \
   -e ADMIN_EMAIL=admin@example.com \
   -e OVERWRITE_SETTING_Show_Setup_Wizard=completed \
   rocketchat/rocket.chat:latest
@@ -86,10 +107,10 @@ echo "Rocket.Chat Docker setup complete and accessible at: http://${EC2_PRIVATE_
 echo "Starting Rocket.Chat administration setup on EC2 instance with private IP: ${EC2_PRIVATE_IP}"
 
 echo "Authenticating admin user to get auth token..."
-LOGIN_JSON=$(curl -s -H "Content-type: application/json" http://localhost:3000/api/v1/login -d '{
-  "user": "ec2-user",
-  "password": "StrongPassword123!"
-}')
+LOGIN_JSON=$(curl -s -H "Content-type: application/json" http://localhost:3000/api/v1/login -d "{
+  \"user\": \"ec2-user\",
+  \"password\": \"${ROCKETCHAT_PASSWORD}\"
+}")
 
 AUTH_TOKEN=$(echo "$LOGIN_JSON" | jq -r .data.authToken)
 USER_ID=$(echo "$LOGIN_JSON" | jq -r .data.userId)
@@ -123,6 +144,10 @@ CREATE_RESPONSE=$(curl -s -H "X-Auth-Token: $AUTH_TOKEN" \
        \"scriptEnabled\": false
      }")
 
-WEBHOOK_ID=$(echo "$CREATE_RESPONSE" | jq -r .integration._id)
+ROCKETCHAT_WEBHOOK_ID=$(echo "$CREATE_RESPONSE" | jq -r .integration._id)
+ROCKETCHAT_WEBHOOK_TOKEN=$(echo "$CREATE_RESPONSE" | jq -r .integration.token)
+
+ROCKETCHAT_WEBHOOK_URL="http://${PUBLIC_IP}/hooks/${ROCKETCHAT_WEBHOOK_ID}/${ROCKETCHAT_WEBHOOK_TOKEN}"
+echo "ROCKETCHAT_WEBHOOK_URL=${ROCKETCHAT_WEBHOOK_URL}" >> /tmp/.rocketchat_env_var
 
 echo "Setup complete. Rocket.Chat is running at http://${EC2_PRIVATE_IP}:3000"

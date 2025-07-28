@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# (c) 2025 Amazon Web Services, Inc. All Rights Reserved.
+# This AWS content is subject to the terms of C2E Task Order 5502/HM047623F0080
+
 # Update system and install dependencies
 yum update -y
 yum install -y amazon-cloudwatch-agent nvme-cli
@@ -59,7 +62,7 @@ EOF
   -m ec2 \
   -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json \
   -s
-  
+
 # Record output
 /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -m ec2 -a status > /tmp/agent_status.txt
 

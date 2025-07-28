@@ -2,9 +2,13 @@
 
 This project uses the **AWS Cloud Development Kit (CDK)** with **Python** and requires **Node.js 20+**. The default Python version is expected to be `python3` as provided by Ubuntu (typically Python 3.10+).
 
+This is a self-contained technology demonstrator for generating Amazon EBS alerts and populating a Rocket.Chat endpoint.
+
+![Rocket.Chat Notification Pipeline](supporting_graphics/diagram_rocket_alerts.png)
+
 ---
 
-### 1. Install Node.js 20 (Ubuntu) (Windows via steps found to copy via https://nodejs.org/en/download)
+### 1. Install Node.js 20 (Ubuntu)
 
 Install Node.js 20 via the official NodeSource repo:
 
@@ -47,7 +51,7 @@ pip3 --version        # make sure pip is installed
 #### If either is missing or not at the expected version, you may need to install or upgrade:
 
 ```bash
-# Install Python 3.10 or 3.11 if needed
+# Install Python 3.10 (utilized in demonstration) or 3.11 if needed
 sudo apt update
 sudo apt install -y python3.10 python3-pip
 ```
@@ -116,8 +120,10 @@ Node.js 20 is required for CDK CLI v2.x to function properly.
 
 ### 0. Generate the environment cdk parameters file
 Use the `code/generate_env_from_template.sh` to generate a fresh `.env.cdk.params` file.
-
-
+```bash
+cd code
+bash generate_env_from_template.sh
+```
 
 ### 1. How to Use
 Source the environment file:
@@ -321,4 +327,62 @@ Carry Over from the LambdaStack:
 
 ```bash
 bash deploy.sh CloudWatchAlarmStack
+```
+
+### 11. Destroy Individual Stacks
+Same logic as deploying individual stacks however you will substitute `deploy.sh` for `destroy.sh`. 
+
+### 12. Destroy entire stack (--all)
+Use the following command to destroy the entire stack.
+```bash
+bash destroy.sh --all
+```
+
+### 13. Use the Disk Fill Utility Script.
+This script simulates disk pressure on an EC2 instance by writing zero-filled files to a mounted EBS volume until a target usage percentage is reached. It also supports cleanup of the generated files. The script is located at `/usr/local/bin/disk_fill_tool.sh` if following `DiskMonitorStack`.
+
+Usage
+```bash
+./disk_fill_tool.sh [TARGET_USAGE] [MOUNT_PATH] [FILL_SIZE_MB]
+```
+
+* TARGET_USAGE – Target disk usage percentage (default: 90).
+* MOUNT_PATH – Path to mounted volume to fill (default: /mnt/vol1).
+* FILL_SIZE_MB – Size in MB of each file written (default: 100).
+
+Example: Fill /mnt/vol1 until 90% full using 500MB files
+
+```bash
+./disk_fill_tool.sh 90 /mnt/vol1 500
+```
+
+Cleanup Mode
+```bash
+./disk_fill_tool.sh --clear [MOUNT_PATH]
+```
+
+Deletes all generated fillfile_* files from the given mount path (default: /mnt/vol1).
+
+Example:
+
+```bash
+./disk_fill_tool.sh --clear /mnt/vol1
+
+Displays usage instructions and exits.
+```bash
+./disk_fill_tool.sh --help
+```
+
+### 14. Rocket.Chat environment variables
+ROCKETCHAT_USERNAME, ROCKETCHAT_PASSWORD and ROCKETCHAT_WEBHOOK_URL are located in the Rocket.Chat EC2 instance at `/tmp/.rocketchat_env_var`.
+
+How to Find a Webhook in Rocket.Chat
+* Log in to your Rocket.Chat workspace with designated ROCKETCHAT_USERNAME/ROCKETCHAT_PASSWORD.
+* In the left sidebar, click on “Workspace” to open the administration panel.
+* From the Workspace settings menu, scroll down and click on “Integrations”.
+* You’ll see a list of all configured Incoming and Outgoing Webhooks. Look for `Disk Usage Alerts`.
+* Use the search bar or scroll to find the webhook you’re looking for.
+* Click on the webhook to open it, then scroll down to view the Webhook URL — it will be in the form:
+```bash
+https://your.rocketchat.server/hooks/<webhook_id>/<token>
 ```
